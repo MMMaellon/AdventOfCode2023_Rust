@@ -1,6 +1,6 @@
 advent_of_code::solution!(4);
 struct Card {
-    id: u32,
+    _id: u32,
     winning: Vec<u32>,
     nums: Vec<u32>,
     points: u32,
@@ -9,7 +9,7 @@ struct Card {
 impl Card {
     fn new(id: u32) -> Self {
         Self {
-            id,
+            _id: id,
             winning: Vec::new(),
             nums: Vec::new(),
             points: 0,

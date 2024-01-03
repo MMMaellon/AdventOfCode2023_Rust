@@ -1,4 +1,3 @@
-use std::ops::Add;
 
 advent_of_code::solution!(10);
 

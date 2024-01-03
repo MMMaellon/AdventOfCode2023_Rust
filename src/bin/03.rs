@@ -1,4 +1,3 @@
-use std::ops::Add;
 
 advent_of_code::solution!(3);
 pub fn part_one(input: &str) -> Option<u32> {
@@ -21,6 +20,8 @@ pub fn part_one(input: &str) -> Option<u32> {
         length: &usize,
         sum: &mut u32,
     ) {
+        let _ = symbols;
+        let _ = prev_nums;
         if *length == 0 {
             return;
         }
@@ -88,10 +89,10 @@ pub fn part_one(input: &str) -> Option<u32> {
                         symbols.push(i);
                         should_add = true;
 
-                        for &mut (prev_index, mut prev_value, prev_length) in &mut prev_nums {
+                        for &mut (prev_index, prev_value, prev_length) in &mut prev_nums {
                             if i + 1 >= prev_index && i <= prev_index + prev_length {
                                 sum += prev_value;
-                                prev_value = 0;
+                                // prev_value = 0;
                             }
                         }
                     }

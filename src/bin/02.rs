@@ -59,7 +59,7 @@ pub fn part_two(input: &str) -> Option<u32> {
     let (mut count, mut red, mut green, mut blue): (u32, u32, u32, u32);
     let mut parts;
     let mut hand_parts;
-    let (mut min_red, mut min_green, mut min_blue): (u32, u32, u32) = (999, 999, 999);
+    let (mut min_red, mut min_green, mut min_blue): (u32, u32, u32);
     for line in input.lines() {
         parts = line.split_once(": ");
         (min_red, min_green, min_blue) = (0, 0, 0);

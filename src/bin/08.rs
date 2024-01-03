@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use num_integer::Integer;
 
 advent_of_code::solution!(8);
