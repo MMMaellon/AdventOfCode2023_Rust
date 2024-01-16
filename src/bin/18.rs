@@ -1,10 +1,14 @@
-use std::fmt;
+use std::{
+    cmp::{max, min},
+    fmt,
+    ops::RangeInclusive,
+};
 advent_of_code::solution!(18);
 
 struct Step {
-    x: i32,
-    y: i32,
-    color: u32,
+    x: i128,
+    y: i128,
+    color: u128,
 }
 
 impl fmt::Debug for Step {
@@ -18,10 +22,11 @@ fn parse(input: &str) -> Vec<Step> {
     for line in input.lines() {
         if let Some((direction, remainder)) = line.split_once(' ') {
             if let Some((count_str, remainder)) = remainder.split_once(' ') {
-                if let Ok(count) = count_str.parse::<i32>() {
-                    if let Ok(color) =
-                        u32::from_str_radix(remainder.trim_matches(|x : char| !x.is_alphanumeric()), 16)
-                    {
+                if let Ok(count) = count_str.parse::<i128>() {
+                    if let Ok(color) = u128::from_str_radix(
+                        remainder.trim_matches(|x: char| !x.is_alphanumeric()),
+                        16,
+                    ) {
                         let mut step = Step {
                             x: count,
                             y: 0,
@@ -43,12 +48,11 @@ fn parse(input: &str) -> Vec<Step> {
                         }
                         output.push(step);
                     }
-
-        } else {
-            println!("bad parse {}", line);
+                } else {
+                    println!("bad parse {}", line);
                 }
-        } else {
-            println!("bad count {}", line);
+            } else {
+                println!("bad count {}", line);
             }
         } else {
             println!("bad direction {}", line);
@@ -57,33 +61,65 @@ fn parse(input: &str) -> Vec<Step> {
     return output;
 }
 
-fn calc_area(steps: &Vec<Step>) -> usize{
-    let mut height = 0;
-    let mut count: i32 = 0;
-    let mut last_horizontal = false;
-    for step in steps.into_iter(){
-        if step.y != 0{
-            height += step.y;
-        } else if last_horizontal{
-            if step.x > 0{
-                count += height * step.x;
-            } else {
-                count += (height - 1) * step.x;
-            }
-        } else if step.x > 0{
-            count += height * (step.x - 1);
-        } else {
-            count += (height - 1) * (step.x + 1);
+fn parse_from_color(input : &Vec<Step>) -> Vec<Step>{
+    let mut output = Vec::new();
+    for step in input{
+        let hex_string = format!("{:06x}", step.color);
+        let mut new_step = Step{
+            x: 0,
+            y: 0,
+            color: step.color,
+        };
+        match hex_string.get(hex_string.len() - 1..){
+            Some("0") => { new_step.x = 1 }
+            Some("1") => { new_step.y = 1 }
+            Some("2") => { new_step.x = -1 }
+            Some("3") => { new_step.y = -1 }
+            _ => {}
         }
-        last_horizontal = step.y == 0;
-        println!("height {} count {}", height, count);
+        if let Ok(value) = i128::from_str_radix(&hex_string[0..5], 16){
+            new_step.x *= value;
+            new_step.y *= value;
+        }
+        output.push(new_step);
+    }
+    return output;
+}
+
+fn calc_area(steps: &Vec<Step>) -> usize {
+    let (negative_x, positive_x, negative_y, positive_y) = get_bounding_box(&steps);
+    let mut height = negative_y.abs();
+    let count: i128;
+    let mut border: i128 = 1;
+    let mut lefts: i128 = 0;
+    let mut rights: i128 = 0;
+    for step in steps.into_iter() {
+        if step.y != 0 {
+            height += step.y;
+            //the vertical line
+            if step.y > 0 {
+                border += step.y;
+            }
+        } else {
+            if step.x < 0 {
+                lefts += height * step.x.abs();
+            } else {
+                rights += height * step.x.abs();
+                border += step.x.abs();
+            }
+        }
+    }
+    if lefts > rights {
+        count = border + lefts - rights;
+    } else {
+        count = border + rights - lefts;
     }
     return count.abs() as usize;
 }
-fn calc_perimeter(steps: &Vec<Step>) -> usize{
+fn calc_perimeter(steps: &Vec<Step>) -> usize {
     let mut count = 0;
-    for step in steps.into_iter(){
-        if step.y != 0{
+    for step in steps.into_iter() {
+        if step.y != 0 {
             count += step.y.abs();
         } else {
             count += step.x.abs();
@@ -91,16 +127,68 @@ fn calc_perimeter(steps: &Vec<Step>) -> usize{
     }
     return count as usize;
 }
-pub fn part_one(input: &str) -> Option<u32> {
-    let steps = parse(input);
-    println!("perimeter {}", calc_perimeter(&steps));
-    println!("area {}", calc_area(&steps));
-    println!("both {}", calc_perimeter(&steps) + calc_area(&steps));
-    return Some(calc_perimeter(&steps) as u32 + calc_area(&steps) as u32);
+
+fn get_bounding_box(steps: &Vec<Step>) -> (i128, i128, i128, i128) {
+    let mut positive_y = 0;
+    let mut negative_y = 0;
+    let mut positive_x = 0;
+    let mut negative_x = 0;
+    let mut x = 0;
+    let mut y = 0;
+    for step in steps.iter() {
+        x += step.x;
+        y += step.y;
+        negative_x = min(negative_x, x);
+        positive_x = max(positive_x, x);
+        negative_y = min(negative_y, y);
+        positive_y = max(positive_y, y);
+    }
+    return (negative_x, positive_x, negative_y, positive_y);
 }
 
-pub fn part_two(input: &str) -> Option<u32> {
-    None
+fn print_path(steps: &Vec<Step>) {
+    let (negative_x, positive_x, negative_y, positive_y) = get_bounding_box(&steps);
+    let height = (negative_y.abs() + positive_y) as usize + 1;
+    let width = (negative_x.abs() + positive_x) as usize + 1;
+    let mut grid = vec![vec!['.'; width]; height + 1];
+    grid[negative_y.abs() as usize] = vec!['-'; width];
+    let mut x = negative_x.abs();
+    let mut y = negative_y.abs();
+    for step in steps.iter() {
+        let new_x = x + step.x;
+        let new_y = y + step.y;
+        for i in min(new_y, y)..=max(new_y, y) {
+            for j in min(new_x, x)..=max(new_x, x) {
+                if i >= negative_y.abs() {
+                    grid[i as usize + 1][j as usize] = '#';
+                } else {
+                    grid[i as usize][j as usize] = '#';
+                }
+            }
+        }
+        x += step.x;
+        y += step.y;
+    }
+    for line in grid.into_iter() {
+        for tile in line.into_iter() {
+            print!("{}", tile);
+        }
+        println!("");
+    }
+}
+pub fn part_one(input: &str) -> Option<u128> {
+    let steps = parse(input);
+    print_path(&steps);
+    // println!("perimeter {}", calc_perimeter(&steps));
+    println!("area {}", calc_area(&steps));
+    // println!("both {}", calc_perimeter(&steps) + calc_area(&steps));
+    return Some(calc_area(&steps) as u128);
+}
+
+pub fn part_two(input: &str) -> Option<u128> {
+    let steps = parse(input);
+    let steps = parse_from_color(&steps);
+    return Some(calc_area(&steps) as u128);
 }
 
 #[cfg(test)]
